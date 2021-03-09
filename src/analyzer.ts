@@ -9,11 +9,14 @@ export class Analyzer {
   private line_series: Line[]
   private segment_series: Segment[]
 
+  private detected_line: Fractal[]
+
   constructor() {
     this.candle_series = new Array()
     this.fractal_series = new Array()
     this.line_series = new Array()
     this.segment_series = new Array()
+    this.detected_line = new Array()
   }
 
   update(k: Bar) {
@@ -25,7 +28,7 @@ export class Analyzer {
     this.fractal_series.push(last_fractal)
     // 3. update line
 
-    update_line(this.fractal_series)
+    update_line(this.detected_line, last_fractal)
 
     // 4. update segment
 

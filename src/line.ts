@@ -18,8 +18,40 @@
  *    而中间的那些底，都X掉。
  */
 
-import {Fractal, Candle} from './types'
+import { Fractal, FractalType } from './types'
+import { assert } from './assert'
 
-export function update_line(fractals: Fractal[]) {
+export function update_line(fractals: Fractal[], current: Fractal) {
+    const len = fractals.length
 
+    switch (len) {
+        case 0:
+            fractals.push(current)
+            return null;
+        case 1:
+        case 2:
+            const last = fractals[fractals.length - 1]
+            // step 2
+            if (last.type === current.type) {
+                if (last.type === FractalType.Top) {
+                    if (last.high < current.high) {
+                        fractals.pop();
+                        fractals.push(current);
+                        return null
+                    }
+                } else {
+                    if (last.low > current.low) {
+                        fractals.pop()
+                        fractals.push(current)
+                    }
+                }
+            }
+            break;
+        case 3:
+
+        default:
+            throw new Error('笔的分型缓冲区长度不对')
+    }
+
+    return null
 }

@@ -110,7 +110,7 @@ export function update_fractal(candles: Candle[], k3: Bar) {
             const candle = build_candle_from_bar(k3)
             candles.push(candle)
 
-            // 注意当前的K3并没有完全确定下来，需要等K4经过包含处理后才能完全确定，但这个不影响分型的处理
+            // 注意当前的Candle(K3)并没有完全确定下来，需要等后一根Candle(经过包含处理后)才能完全确定，但这个不影响分型的处理
             return check_fractal(k1, k2, candle)
     }
 }
