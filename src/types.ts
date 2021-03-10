@@ -48,7 +48,7 @@ export interface Pen {
     status: PenStatus
 }
 
-enum SegmentType {
+export enum SegmentType {
     Up,
     Down
 }
@@ -56,4 +56,18 @@ enum SegmentType {
 export interface Segment {
     pens: Pen[],
     type: SegmentType
+}
+
+export enum SequenceMergeDirection{
+    Up,
+    Down
+}
+// 特征序列
+export interface Sequence {
+    // 横坐标代表时间,纵坐标代表价格
+    // (x1,y1)代表起点 (x2,y2)代表终点
+    x1: number,
+    y1: number, 
+    x2: number,
+    y2: number
 }
