@@ -2,16 +2,16 @@
 
 // 未经过包含处理的K线
 export interface Bar {
-    time:Date,
-    open:number,
-    high:number,
-    low:number,
-    close:number
+    time: number,   // Date.getTime()
+    open: number,
+    high: number,
+    low: number,
+    close: number
 }
 
 // 经过包含处理的K线
 export interface Candle extends Bar {
-    bars:Bar[]
+    bars: Bar[]
 }
 
 // 分型
@@ -21,13 +21,12 @@ export enum FractalType {
 }
 
 export interface Fractal {
-    time: Date,
+    time: number,
     type: FractalType,
     high: number,
     low: number,
     fx: number,
-    elements: Candle[],
-    index:number
+    index: number   // 分型中心candle在Candles数组中的索引
 }
 
 // 笔
@@ -49,8 +48,12 @@ export interface Pen {
     status: PenStatus
 }
 
-
+enum SegmentType {
+    Up,
+    Down
+}
 // 线段
 export interface Segment {
-
+    pens: Pen[],
+    type: SegmentType
 }

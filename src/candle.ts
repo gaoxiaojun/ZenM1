@@ -1,5 +1,6 @@
 
 import { Bar, Candle, Fractal, FractalType } from './types'
+import { assert } from './assert';
 
 function build_candle_from_bar(bar: Bar) {
     const candle = {
@@ -13,31 +14,34 @@ function build_candle_from_bar(bar: Bar) {
     return candle
 }
 
-// 检测顶底分型
-function check_fractal(k1: Candle, k2: Candle, k3: Candle, k2_index:number) {
-    if ((k1.high < k2.high) && (k2.high > k3.high)) {
+// 在Candles中，通过最后3个Candle，检测顶底分型
+function check_fractal(candles: Candle[]): Fractal | null {
+    const len = candles.length
+    assert(len >= 3)
+    const K1 = candles[len - 3]
+    const K2 = candles[len - 2]
+    const K3 = candles[len - 1]
+    if ((K1.high < K2.high) && (K2.high > K3.high)) {
         // assert(K1.low <= K2.low && K2.low >= K3.low, "顶分型的底不是最高的")
         return {
-            time: k2.time,
+            time: K2.time,
             type: FractalType.Top,
-            high: k2.high,
-            low: k2.low,
-            fx: k2.high,
-            elements: [k1, k2, k3],
-            index:k2_index
+            high: K2.high,
+            low: K2.low,
+            fx: K2.high,
+            index: len - 2  // 注意保存的是 Candle Index
         }
     }
 
-    if ((k1.low > k2.low) && (k2.low < k3.low)) {
+    if ((K1.low > K2.low) && (K2.low < K3.low)) {
         // assert((K1.high >= K2.high) && (K2.high <= K3.high), "底分型的顶不是最低的")
         return {
-            time: k2.time,
+            time: K2.time,
             type: FractalType.Bottom,
-            high: k2.high,
-            low: k2.low,
-            fx: k2.low,
-            elements: [k1, k2, k3],
-            index: k2_index
+            high: K2.high,
+            low: K2.low,
+            fx: K2.low,
+            index: len - 2
         }
     }
 
@@ -85,7 +89,7 @@ export function update_fractal(candles: Candle[], k3: Bar) {
             // 检测k2,k3的是否有包含关系
             if ((k3.high >= k2.high && k3.low <= k2.low) || (k3.high <= k2.high && k3.low <= k2.low)) {
                 // k2,k3有包含关系
-                let _time: Date, _open: number, _high: number, _low: number, _close: number
+                let _time: number, _open: number, _high: number, _low: number, _close: number
                 if (k1.high + k1.low > k2.high + k2.low) {
                     // 下包含，取低低
                     _high = Math.min(k3.high, k2.high)
@@ -112,7 +116,7 @@ export function update_fractal(candles: Candle[], k3: Bar) {
             const candle = build_candle_from_bar(k3)
             candles.push(candle)
 
-            // 注意当前的Candle(K3)并没有完全确定下来，需要等后一根Candle(经过包含处理后)才能完全确定，但这个不影响分型的处理
-            return check_fractal(k1, k2, candle, len-1)
+            // 注意当前的Candle并没有完全确定下来，需要等后一根Candle(经过包含处理后)才能完全确定，但这个不影响分型的处理
+            return check_fractal(candles)
     }
 }
