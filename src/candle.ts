@@ -14,7 +14,7 @@ function build_candle_from_bar(bar: Bar) {
 }
 
 // 检测顶底分型
-function check_fractal(k1: Candle, k2: Candle, k3: Candle) {
+function check_fractal(k1: Candle, k2: Candle, k3: Candle, k2_index:number) {
     if ((k1.high < k2.high) && (k2.high > k3.high)) {
         // assert(K1.low <= K2.low && K2.low >= K3.low, "顶分型的底不是最高的")
         return {
@@ -23,7 +23,8 @@ function check_fractal(k1: Candle, k2: Candle, k3: Candle) {
             high: k2.high,
             low: k2.low,
             fx: k2.high,
-            elements: [k1, k2, k3]
+            elements: [k1, k2, k3],
+            index:k2_index
         }
     }
 
@@ -35,7 +36,8 @@ function check_fractal(k1: Candle, k2: Candle, k3: Candle) {
             high: k2.high,
             low: k2.low,
             fx: k2.low,
-            elements: [k1, k2, k3]
+            elements: [k1, k2, k3],
+            index: k2_index
         }
     }
 
@@ -111,6 +113,6 @@ export function update_fractal(candles: Candle[], k3: Bar) {
             candles.push(candle)
 
             // 注意当前的Candle(K3)并没有完全确定下来，需要等后一根Candle(经过包含处理后)才能完全确定，但这个不影响分型的处理
-            return check_fractal(k1, k2, candle)
+            return check_fractal(k1, k2, candle, len-1)
     }
 }

@@ -11,7 +11,8 @@
  * 就是特征序列的分型中，第一和第二元素间存不存在特征序列的缺口。
  */
 
-import { Line } from './types'
-export function update_segment(lines: Line[]) {
+import { Pen, Segment } from './types'
+
+export function update_segment(segments: Segment[], pen:Pen) {
 
 }

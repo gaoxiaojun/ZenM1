@@ -27,19 +27,26 @@ export interface Fractal {
     low: number,
     fx: number,
     elements: Candle[],
+    index:number
 }
 
 // 笔
-export enum LineType {
+export enum PenType {
     Up,
     Down
 }
 
-export interface Line {
-    from: Fractal,
-    to: Fractal,
-    type: LineType,
-    isComplete: boolean
+export enum PenStatus {
+    New,
+    Continue,
+    Complete
+}
+
+export interface Pen {
+    start: Fractal,
+    end: Fractal,
+    type: PenType,
+    status: PenStatus
 }
 
 
