@@ -52,11 +52,6 @@ export class PenDetector {
         return candle
     }
 
-    private is_include(k1: Candle, k2: Bar) {
-        const included = (k1.high >= k2.high && k1.low <= k2.low) || (k1.high <= k2.high && k1.low <= k2.low)
-        return included
-    }
-
     /**
      * 去除两根K线的包含关系
      * @param k 最新Bar
@@ -91,7 +86,7 @@ export class PenDetector {
         const k3 = k
 
         // 检测k2,k3的是否有包含关系
-        if (this.is_include(k2, k3)) {
+        if ((k2.high >= k3.high && k2.low <= k3.low) || (k2.high <= k3.high && k2.low <= k3.low)) {
             assert(k1.high !== k2.high)
             // 特殊的一字板与前一根K高低点相同情况的处理
             const HIGH_EQ_LOW = k3.high === k3.low  // 一字板
