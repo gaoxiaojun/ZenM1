@@ -122,6 +122,11 @@ export class PenDetector {
         const K2 = this._candles[len - 2]
         const K3 = this._candles[len - 1]
 
+        assert(K1.high !== K2.high)
+        assert(K2.high !== K3.high)
+        assert(K1.low !== K2.low)
+        assert(K2.low !== K3.low)
+
         if ((K1.high < K2.high) && (K2.high > K3.high)) {
             assert(K1.low <= K2.low && K2.low >= K3.low, "顶分型的底不是最高的")
             return {
