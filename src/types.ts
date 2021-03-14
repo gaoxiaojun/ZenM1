@@ -11,6 +11,7 @@ export interface Bar {
 
 // 经过包含处理的K线
 export interface Candle {
+    id: number,
     time: number,
     high: number,
     low: number,
