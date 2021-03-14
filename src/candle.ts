@@ -109,7 +109,7 @@ export function update_fractal(candles: Candle[], k3: Bar) {
                     _open = _low
                     _close = _high
                 }
-                k2.bars.push(k3)
+                //k2.bars.push(k3)
                 return null
             }
 

@@ -10,8 +10,10 @@ export interface Bar {
 }
 
 // 经过包含处理的K线
-export interface Candle extends Bar {
-    bars: Bar[]
+export interface Candle {
+    time: number,
+    high: number,
+    low: number,
 }
 
 // 分型
@@ -58,7 +60,7 @@ export interface Segment {
     type: SegmentType
 }
 
-export enum SequenceMergeDirection{
+export enum SequenceMergeDirection {
     Up,
     Down
 }
@@ -67,7 +69,7 @@ export interface Sequence {
     // 横坐标代表时间,纵坐标代表价格
     // (x1,y1)代表起点 (x2,y2)代表终点
     x1: number,
-    y1: number, 
+    y1: number,
     x2: number,
     y2: number
 }
