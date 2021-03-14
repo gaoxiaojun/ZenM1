@@ -28,7 +28,8 @@ export interface Fractal {
     type: FractalType,
     high: number,
     low: number,
-    fx: number,
+    fxHigh: number,
+    fxLow: number
     index: number   // 分型中心candle在Candles数组中的索引
 }
 

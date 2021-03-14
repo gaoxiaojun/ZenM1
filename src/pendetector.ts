@@ -46,7 +46,7 @@ export class PenDetector {
             low: bar.low,
         }
 
-        // 这里是为了今后方便判断分型之间的距离是否满足严格笔的要求, b.id - a.id >= 5，其中a,b为分型的中间K,a在前b在后
+        // 这里是为了今后方便判断分型之间的距离是否满足严格笔的要求, b.id - a.id >= 4，其中a,b为分型的中间K,a在前b在后
         // 因此此Id严格递增，每个新Candle就+1
         this._candleId = this._candleId + 1
         return candle
@@ -114,19 +114,22 @@ export class PenDetector {
 
 
     // ===================================================================== 分型处理 ====================================================
-    // 在Candles中，通过最后3个Candle，检测顶底分型
+    // 在Candles中，通过最后4个Candle，检测顶底分型
+    // 这里有个细节需要注意，只有当第4根Candle生成后，第3根Candle的高低点才能完全确定
+    // 在笔检测的时候，需要通过分型后两根Candle组成的高低点区间[fxHigh, fxLow]去判断前后分型是否存在包含关系
     private check_fractal(): Fractal | null {
         const len = this._candles.length
-        assert(len >= 3)
-        const K1 = this._candles[len - 3]
+        assert(len >= 4)
+        const K1 = this._candles[len - 4]
         const K2 = this._candles[len - 2]
-        const K3 = this._candles[len - 1]
+        const K3 = this._candles[len - 2]
 
         assert(K1.high !== K2.high)
         assert(K2.high !== K3.high)
         assert(K1.low !== K2.low)
         assert(K2.low !== K3.low)
 
+        // 注意fxHigh, fxLow，这里采用了最严格的标准，用于前后分型的包含关系处理
         if ((K1.high < K2.high) && (K2.high > K3.high)) {
             assert(K1.low <= K2.low && K2.low >= K3.low, "顶分型的底不是最高的")
             return {
@@ -134,7 +137,8 @@ export class PenDetector {
                 type: FractalType.Top,
                 high: K2.high,
                 low: K2.low,
-                fx: K2.high,
+                fxHigh: Math.max(K1.high, K2.high, K3.high),
+                fxLow: Math.min(K1.low, K2.low, K3.low),
                 index: K2.id  // 注意保存的是 Candle Index
             }
         }
@@ -146,7 +150,8 @@ export class PenDetector {
                 type: FractalType.Bottom,
                 high: K2.high,
                 low: K2.low,
-                fx: K2.low,
+                fxHigh: Math.max(K1.high, K2.high, K3.high),
+                fxLow: Math.min(K1.low, K2.low, K3.low),
                 index: K2.id
             }
         }
@@ -155,50 +160,45 @@ export class PenDetector {
     }
 
     // ================================================================ 笔检测 ===========================================================
-
+    // 顶分型的最高点在底分型的范围内或者底分型的最低点在顶分型的范围内 都不构成笔
     private check_pen(pens: Pen[], f1: Fractal, f2: Fractal) {
         // 前顶后低 and 前高后低 and 距离足够
-        if ((f1.type === FractalType.Top) && (f2.type === FractalType.Bottom) && (f1.high > f2.high)) {
-            const distance = f2.index - f1.index
-            if (distance >= 4) {
-                const newPen = {
-                    start: f1,
-                    end: f2,
-                    type: PenType.Down,
-                    status: PenStatus.New
-                }
-                if (pens.length > 0) {
-                    const pen = pens[pens.length - 1]
-                    pen.status = PenStatus.Complete
-                }
-
-                pens.push(newPen)
-                return newPen
+        // 这里的前高后低判断用于最严格的标准，即不允许前包含也不允许后包含
+        if ((f1.type === FractalType.Top && f2.type === FractalType.Bottom) && (f1.fxLow > f2.fxLow && f1.fxHigh > f2.fxHigh) && (f2.index - f1.index >= 4)) {
+            const newPen = {
+                start: f1,
+                end: f2,
+                type: PenType.Down,
+                status: PenStatus.New
             }
+            if (pens.length > 0) {
+                const pen = pens[pens.length - 1]
+                pen.status = PenStatus.Complete
+            }
+
+            pens.push(newPen)
+            return newPen
         }
 
         // 前底后顶 and 前低后高 and 距离足够
-        if ((f1.type === FractalType.Bottom) && (f2.type === FractalType.Top) && (f1.fx < f2.fx)) {
-            const distance = f2.index - f1.index
-            if (distance >= 4) {
-                const newPen = {
-                    start: f1,
-                    end: f2,
-                    type: PenType.Up,
-                    status: PenStatus.New
-                }
-                if (pens.length > 0) {
-                    const pen = pens[pens.length - 1]
-                    pen.status = PenStatus.Complete
-                }
-                pens.push(newPen)
-                return newPen
-
+        // 这里的前低后高判断用于最严格的标准，即不允许前包含也不允许后包含
+        if ((f1.type === FractalType.Bottom && f2.type === FractalType.Top) && (f1.fxHigh < f2.fxHigh && f1.fxLow < f2.fxLow) && (f2.index - f1.index >= 4)) {
+            const newPen = {
+                start: f1,
+                end: f2,
+                type: PenType.Up,
+                status: PenStatus.New
             }
+            if (pens.length > 0) {
+                const pen = pens[pens.length - 1]
+                pen.status = PenStatus.Complete
+            }
+            pens.push(newPen)
+            return newPen
         }
 
         // 前顶后顶 and 前低后高
-        if (f1.type === FractalType.Top && f2.type === FractalType.Top && (pens.length > 0) && (f1.fx < f2.fx)) {
+        if ((f1.type === FractalType.Top && f2.type === FractalType.Top) && (pens.length > 0) && (f1.fxHigh < f2.fxHigh)) {
             const pen = pens[pens.length - 1]
             pen.status = PenStatus.Continue
             pen.end = f2
@@ -206,7 +206,7 @@ export class PenDetector {
         }
 
         // 前底后底 and 前高后低
-        if (f1.type === FractalType.Bottom && f2.type === FractalType.Bottom && (pens.length > 0) && (f1.fx > f2.fx)) {
+        if (f1.type === FractalType.Bottom && f2.type === FractalType.Bottom && (pens.length > 0) && (f1.fxLow > f2.fxLow)) {
             const pen = pens[pens.length - 1]
             pen.status = PenStatus.Continue
             pen.end = f2
@@ -219,7 +219,7 @@ export class PenDetector {
     // 确保相邻两个顶底之间不存在包含关系
 
     private update_pen(current: Fractal) {
-        assert(this._fractals.length < 2)
+        assert(this._fractals.length < 3)
         if (this._fractals.length === 0) {
             this._fractals.push(current)
             return null
