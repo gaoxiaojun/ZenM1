@@ -37,7 +37,7 @@ export class PenDetector {
         this.update_pen(newFractal)
     }
 
-    // ============================================ 以下为包含关系处理 ======================================
+    // ============================================ 以下为包含关系处理(所有特殊情况都已经考虑)======================================
     private build_candle_from_bar(bar: Bar) {
         const candle: Candle = {
             id: this._candleId,
@@ -46,7 +46,7 @@ export class PenDetector {
             low: bar.low,
         }
 
-        // 这里是为了今后方便判断分型直接的距离是否满足严格笔的要求, b.id - a.id >= 5，其中a,b为分型的中间K,a在前b在后
+        // 这里是为了今后方便判断分型之间的距离是否满足严格笔的要求, b.id - a.id >= 5，其中a,b为分型的中间K,a在前b在后
         // 因此此Id严格递增，每个新Candle就+1
         this._candleId = this._candleId + 1
         return candle
