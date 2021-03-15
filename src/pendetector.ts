@@ -1,7 +1,33 @@
-import { Bar, Candle, Fractal, FractalType, Pen, PenType, PenStatus } from './types'
+import { Bar, Pen, PenType, PenStatus } from './types'
 import { DataStore } from './datastore'
 import { assert } from './assert';
 
+
+// 经过包含处理的K线
+export interface Candle {
+    id: number,
+    time: number,
+    high: number,
+    low: number,
+}
+
+// 分型
+export enum FractalType {
+    Top,
+    Bottom
+}
+
+export interface Fractal {
+    time: number,
+    type: FractalType,
+    high: number,
+    low: number,
+    fxHigh: number,
+    fxLow: number,
+    highs: number[],
+    lows: number[],
+    index: number   // 分型中心candle在Candles数组中的索引
+}
 export interface PenEventCallback {
     OnPenNew(): void;
     OnPenContinue(): void;
@@ -139,6 +165,8 @@ export class PenDetector {
                 low: K2.low,
                 fxHigh: Math.max(K1.high, K2.high, K3.high),
                 fxLow: Math.min(K1.low, K2.low, K3.low),
+                highs: [K1.high, K2.high, K3.high],
+                lows: [K1.low, K2.low, K3.low],
                 index: K2.id  // 注意保存的是 Candle Index
             }
         }
@@ -152,6 +180,8 @@ export class PenDetector {
                 low: K2.low,
                 fxHigh: Math.max(K1.high, K2.high, K3.high),
                 fxLow: Math.min(K1.low, K2.low, K3.low),
+                highs: [K1.high, K2.high, K3.high],
+                lows: [K1.low, K2.low, K3.low],
                 index: K2.id
             }
         }
@@ -178,8 +208,8 @@ export class PenDetector {
         // 这里的前高后低判断用于最严格的标准，即不允许前包含也不允许后包含
         if ((f1.type === FractalType.Top && f2.type === FractalType.Bottom) && (f1.fxLow > f2.fxLow && f1.fxHigh > f2.fxHigh) && (f2.index - f1.index >= 4)) {
             const newPen = {
-                start: f1,
-                end: f2,
+                start: f1.time,
+                end: f2.time,
                 type: PenType.Down,
                 status: PenStatus.New
             }
@@ -196,8 +226,8 @@ export class PenDetector {
         // 这里的前低后高判断用于最严格的标准，即不允许前包含也不允许后包含
         if ((f1.type === FractalType.Bottom && f2.type === FractalType.Top) && (f1.fxHigh < f2.fxHigh && f1.fxLow < f2.fxLow) && (f2.index - f1.index >= 4)) {
             const newPen = {
-                start: f1,
-                end: f2,
+                start: f1.time,
+                end: f2.time,
                 type: PenType.Up,
                 status: PenStatus.New
             }
@@ -213,7 +243,7 @@ export class PenDetector {
         if ((f1.type === FractalType.Top && f2.type === FractalType.Top) && (pens.length > 0) && (f1.fxHigh < f2.fxHigh)) {
             const pen = pens[pens.length - 1]
             pen.status = PenStatus.Continue
-            pen.end = f2
+            pen.end = f2.time
             return pen
         }
 
@@ -221,7 +251,7 @@ export class PenDetector {
         if (f1.type === FractalType.Bottom && f2.type === FractalType.Bottom && (pens.length > 0) && (f1.fxLow > f2.fxLow)) {
             const pen = pens[pens.length - 1]
             pen.status = PenStatus.Continue
-            pen.end = f2
+            pen.end = f2.time
             return pen
         }
 

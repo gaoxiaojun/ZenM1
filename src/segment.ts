@@ -30,45 +30,7 @@
  *
  */
 
-/**
- * 特征序列计算伪代码：
- * 已知两特征序列s1(x1,y1, x2,y2)、s0(x1,y1, x2,y2)，向上合并:
-if 前小后大 and 方向是\\ then
-    return 特征序列s(s1.x2,s1.y2, s2.x1,s2.y1)
-else if 前小后大 and 方向是/\ then
-    return 特征序列s(s1.x1,s1.y1, s2.x1,s2.y1)
-else if 前大后小 and 方向是\\ then
-    return 特征序列s(s1.x1,s1.y1, s2.x2,s2.y2)
-else if 前大后小 and 方向是/\ then
-    return 特征序列s(s1.x2,s1.y2, s2.x2,s2.y2)
 
-已知两特征序列s1(x1,y1, x2,y2)、s0(x1,y1, x2,y2)，向下合并:
-if 前小后大 and 方向是// then
-    return 特征序列s(s1.x2,s1.y2, s2.x1,s2.y1)
-else if 前小后大 and 方向是\/ then
-    return 特征序列s(s1.x1,s1.y1, s2.x1,s2.y1)
-else if 前大后小 and 方向是// then
-    return 特征序列s(s1.x1,s1.y1, s2.x2,s2.y2)
-else if 前大后小 and 方向是\/ then
-    return 特征序列s(s1.x2,s1.y2, s2.x2,s2.y2)
- */
-
-/**
- * 特征序列分型伪代码
- * 特征序列分型于k线分型一样，三根特征序列前上后下形成顶分型或者前下后上形成底分型；
- * 不同之处在于特征序列够三根立即开始分型判定，而不是等第4根特征序列出现后才开始判定。
-if 存在3个已合并之后的向下特征序列k3,k2,k1 then
-    if k3,k2向上 and k2,k1向下 then
-        return 顶分型(k2的时间,k2的最高价)
-    else
-        return 不是顶分型        
-
-if 存在3个已合并之后的向上特征序列k3,k2,k1 then
-    if k3,k2向下 and k2,k1向上 then
-        return 顶分型(k2的时间,k2的最高价)
-    else
-        return 不是底分型    
- */
 
 // 最新的笔不参与特征序列合并和分型处理过程，只用来确认前一反向特征序列完成。
 
@@ -103,13 +65,36 @@ else if 前点是顶分型 and t.y<g.y then
     return g(t.x, t.y, t.type)
  */
 import { assert } from './assert'
-import { Pen, Segment,Sequence,SequenceMergeDirection } from './types'
+import { Pen, Segment, Sequence, SequenceMergeDirection } from './types'
 
 export function update_segment(segments: Segment[], pen: Pen) {
 
 }
 
-function merge_sequence_up(s1: Sequence, s2: Sequence) : Sequence{
+/**
+ * 特征序列计算伪代码：
+ * 已知两特征序列s1(x1,y1, x2,y2)、s0(x1,y1, x2,y2)，向上合并:
+if 前小后大 and 方向是\\ then
+    return 特征序列s(s1.x2,s1.y2, s2.x1,s2.y1)
+else if 前小后大 and 方向是/\ then
+    return 特征序列s(s1.x1,s1.y1, s2.x1,s2.y1)
+else if 前大后小 and 方向是\\ then
+    return 特征序列s(s1.x1,s1.y1, s2.x2,s2.y2)
+else if 前大后小 and 方向是/\ then
+    return 特征序列s(s1.x2,s1.y2, s2.x2,s2.y2)
+
+已知两特征序列s1(x1,y1, x2,y2)、s0(x1,y1, x2,y2)，向下合并:
+if 前小后大 and 方向是// then
+    return 特征序列s(s1.x2,s1.y2, s2.x1,s2.y1)
+else if 前小后大 and 方向是\/ then
+    return 特征序列s(s1.x1,s1.y1, s2.x1,s2.y1)
+else if 前大后小 and 方向是// then
+    return 特征序列s(s1.x1,s1.y1, s2.x2,s2.y2)
+else if 前大后小 and 方向是\/ then
+    return 特征序列s(s1.x2,s1.y2, s2.x2,s2.y2)
+ */
+
+function merge_sequence_up(s1: Sequence, s2: Sequence): Sequence {
     const size1 = Math.abs(s1.y2 - s1.y1)
     const size2 = Math.abs(s2.y2 - s2.y1)
     const dir1 = s1.y2 - s1.y1
@@ -117,9 +102,9 @@ function merge_sequence_up(s1: Sequence, s2: Sequence) : Sequence{
     assert(dir1 != 0)
     assert(dir2 > 0)
     assert(size1 != size2) // 这个假设合理吗？
-    const direction = dir1 > 0 ? 1: 0 // 1 代表是\\ 0 代表 /\
+    const direction = dir1 < 0 && dir2 < 0 ? 1 : 0 // 1 代表是\\ 0 代表 /\
 
-    if ((size1 < size2 ) && (direction === 1)) {
+    if ((size1 < size2) && (direction === 1)) {
         return {
             x1: s1.x2,
             y1: s1.y2,
@@ -127,7 +112,7 @@ function merge_sequence_up(s1: Sequence, s2: Sequence) : Sequence{
             y2: s2.y1
         }
 
-    }else if ((size1 < size2) && (direction === 0)) {
+    } else if ((size1 < size2) && (direction === 0)) {
         return {
             x1: s1.x1,
             y1: s1.y1,
@@ -135,7 +120,7 @@ function merge_sequence_up(s1: Sequence, s2: Sequence) : Sequence{
             y2: s2.y1
         }
 
-    }else if ((size1 > size2) && (direction ===1)) {
+    } else if ((size1 > size2) && (direction === 1)) {
         return {
             x1: s1.x1,
             y1: s1.y1,
@@ -143,7 +128,7 @@ function merge_sequence_up(s1: Sequence, s2: Sequence) : Sequence{
             y2: s2.y2
         }
 
-    }else {
+    } else {
         assert((size1 > size2) && (direction === 0))
         return {
             x1: s1.x2,
@@ -155,17 +140,17 @@ function merge_sequence_up(s1: Sequence, s2: Sequence) : Sequence{
     }
 }
 
-function merge_sequence_down(s1: Sequence, s2: Sequence) : Sequence {
+function merge_sequence_down(s1: Sequence, s2: Sequence): Sequence {
     const size1 = Math.abs(s1.y2 - s1.y1)
     const size2 = Math.abs(s2.y2 - s2.y1)
-    const dir1 = s1.x2 - s1.x1
-    const dir2 = s2.x2 - s1.x1
+    const dir1 = s1.y2 - s1.y1
+    const dir2 = s2.y2 - s1.y1
     assert(dir1 != 0)
     assert(dir2 > 0)
     assert(size1 != size2) // 这个假设合理吗？
-    const direction = dir1 > 0 ? 1: 0 // 1 代表是// 0 代表 \/
+    const direction = dir1 > 0 && dir2 > 0 ? 1 : 0 // 1 代表是// 0 代表 \/
 
-    if ((size1 < size2 ) && (direction === 1)) {
+    if ((size1 < size2) && (direction === 1)) {
         return {
             x1: s1.x2,
             y1: s1.y2,
@@ -173,7 +158,7 @@ function merge_sequence_down(s1: Sequence, s2: Sequence) : Sequence {
             y2: s2.y1
         }
 
-    }else if ((size1 < size2) && (direction === 0)) {
+    } else if ((size1 < size2) && (direction === 0)) {
         return {
             x1: s1.x1,
             y1: s1.y1,
@@ -181,7 +166,7 @@ function merge_sequence_down(s1: Sequence, s2: Sequence) : Sequence {
             y2: s2.y1
         }
 
-    }else if ((size1 > size2) && (direction ===1)) {
+    } else if ((size1 > size2) && (direction === 1)) {
         return {
             x1: s1.x1,
             y1: s1.y1,
@@ -189,7 +174,7 @@ function merge_sequence_down(s1: Sequence, s2: Sequence) : Sequence {
             y2: s2.y2
         }
 
-    }else {
+    } else {
         assert((size1 > size2) && (direction === 0))
         return {
             x1: s1.x2,
@@ -201,6 +186,32 @@ function merge_sequence_down(s1: Sequence, s2: Sequence) : Sequence {
     }
 }
 
-function sequence_fractal(k1: Sequence, k2: Sequence, k3: Sequence){
-    const k21dir = k2.y2 - k1.y2
+/**
+ * 特征序列分型于k线分型一样，三根特征序列前上后下形成顶分型或者前下后上形成底分型；
+ * 不同之处在于特征序列够三根立即开始分型判定，而不是等第4根特征序列出现后才开始判定。
+ * 特征序列分型伪代码:
+if 存在3个已合并之后的向下特征序列k3,k2,k1 then
+    if k3,k2向上 and k2,k1向下 then
+        return 顶分型(k2的时间,k2的最高价)
+    else
+        return 不是顶分型
+
+if 存在3个已合并之后的向上特征序列k3,k2,k1 then
+    if k3,k2向下 and k2,k1向上 then
+        return 顶分型(k2的时间,k2的最高价)
+    else
+        return 不是底分型
+ */
+
+function sequence_fractal(k1: Sequence, k2: Sequence, k3: Sequence) {
+    const k1_high = Math.max(k1.y1, k1.y2)
+    const k1_low = Math.min(k1.y1, k1.y2)
+    const k2_high = Math.max(k2.y1, k2.y2)
+    const k2_low = Math.min(k2.y1, k2.y2)
+    const k3_high = Math.max(k3.y1, k3.y2)
+    const k3_low = Math.min(k3.y1, k3.y2)
+
+    if ((k2_high > k1_high) && (k2_high > k3_high)) {
+
+    }
 }

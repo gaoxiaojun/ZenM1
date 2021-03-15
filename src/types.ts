@@ -9,30 +9,6 @@ export interface Bar {
     close: number
 }
 
-// 经过包含处理的K线
-export interface Candle {
-    id: number,
-    time: number,
-    high: number,
-    low: number,
-}
-
-// 分型
-export enum FractalType {
-    Top,
-    Bottom
-}
-
-export interface Fractal {
-    time: number,
-    type: FractalType,
-    high: number,
-    low: number,
-    fxHigh: number,
-    fxLow: number
-    index: number   // 分型中心candle在Candles数组中的索引
-}
-
 // 笔
 export enum PenType {
     Up,
@@ -46,8 +22,8 @@ export enum PenStatus {
 }
 
 export interface Pen {
-    start: Fractal,
-    end: Fractal,
+    start: number,
+    end: number,
     type: PenType,
     status: PenStatus
 }
