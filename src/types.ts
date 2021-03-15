@@ -9,12 +9,12 @@ export interface Bar {
     close: number
 }
 
-// 笔
-export enum PenType {
+export enum Direction {
     Up,
     Down
 }
 
+// 笔
 export enum PenStatus {
     New,
     Continue,
@@ -24,18 +24,14 @@ export enum PenStatus {
 export interface Pen {
     start: number,
     end: number,
-    type: PenType,
+    direction: Direction,
     status: PenStatus
 }
 
-export enum SegmentType {
-    Up,
-    Down
-}
 // 线段
 export interface Segment {
     pens: Pen[],
-    type: SegmentType
+    direction: Direction
 }
 
 export enum SequenceMergeDirection {

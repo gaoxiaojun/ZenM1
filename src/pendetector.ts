@@ -1,4 +1,4 @@
-import { Bar, Pen, PenType, PenStatus } from './types'
+import { Bar, Pen, PenStatus, Direction } from './types'
 import { DataStore } from './datastore'
 import { assert } from './assert';
 
@@ -140,21 +140,9 @@ export class PenDetector {
 
 
     // ===================================================================== 分型处理 ====================================================
-    // 在Candles中，通过最后4个Candle，检测顶底分型
-    // 这里有个细节需要注意，只有当第4根Candle生成后，第3根Candle的高低点才能完全确定
-    // 在笔检测的时候，需要通过分型后两根Candle组成的高低点区间[fxHigh, fxLow]去判断前后分型是否存在包含关系
-    private check_fractal(): Fractal | null {
-        const len = this._candles.length
-        assert(len >= 4)
-        const K1 = this._candles[len - 4]
-        const K2 = this._candles[len - 2]
-        const K3 = this._candles[len - 2]
-
-        assert(K1.high !== K2.high)
-        assert(K2.high !== K3.high)
-        assert(K1.low !== K2.low)
-        assert(K2.low !== K3.low)
-
+    // 在笔检测的时候，需要通过分型的高低点区间[fxHigh, fxLow]去判断前后分型是否存在包含关系
+    // 调用这个函数要确保K3已经完成
+    private fractal_3k(K1: Candle, K2: Candle, K3: Candle): Fractal | null {
         // 注意fxHigh, fxLow，这里采用了最严格的标准，用于前后分型的包含关系处理
         if ((K1.high < K2.high) && (K2.high > K3.high)) {
             assert(K1.low <= K2.low && K2.low >= K3.low, "顶分型的底不是最高的")
@@ -189,6 +177,38 @@ export class PenDetector {
         return null
     }
 
+    private fractal_included(F1: Fractal, F2: Fractal) {
+        assert(F1.type !== F2.type)
+        if ((F1.fxHigh >= F2.fxHigh && F1.fxLow <= F2.fxLow) || (F1.fxHigh <= F2.fxHigh && F1.fxLow >= F2.fxLow)) return true
+        else return false
+    }
+
+    // 在Candles中，通过最后4个Candle，检测顶底分型
+    // 这里有个细节需要注意，只有当第4根Candle生成后，第3根Candle的高低点才能完全确定
+    private check_fractal(): Fractal | null {
+        const len = this._candles.length
+        assert(len >= 4)
+        const K1 = this._candles[len - 4]
+        const K2 = this._candles[len - 2]
+        const K3 = this._candles[len - 2]
+
+        assert(K1.high !== K2.high)
+        assert(K2.high !== K3.high)
+        assert(K1.low !== K2.low)
+        assert(K2.low !== K3.low)
+
+        return this.fractal_3k(K1, K2, K3)
+    }
+
+    private first_pen() {
+        assert(this._store.pens.length === 0)
+    }
+
+    private pen_check() {
+        if (this._store.pens.length === 0) {
+            this.first_pen()
+        }
+    }
     // ================================================================ 笔检测 ===========================================================
     // 顶分型的最高点在底分型的范围内或者底分型的最低点在顶分型的范围内 都不构成笔
     // 这判断函数有逻辑错误，不能防止这样情况
@@ -210,7 +230,7 @@ export class PenDetector {
             const newPen = {
                 start: f1.time,
                 end: f2.time,
-                type: PenType.Down,
+                direction: Direction.Down,
                 status: PenStatus.New
             }
             if (pens.length > 0) {
@@ -228,7 +248,7 @@ export class PenDetector {
             const newPen = {
                 start: f1.time,
                 end: f2.time,
-                type: PenType.Up,
+                direction: Direction.Up,
                 status: PenStatus.New
             }
             if (pens.length > 0) {
