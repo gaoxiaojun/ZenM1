@@ -189,7 +189,7 @@ export class PenDetector {
         const len = this._candles.length
         assert(len >= 4)
         const K1 = this._candles[len - 4]
-        const K2 = this._candles[len - 2]
+        const K2 = this._candles[len - 3]
         const K3 = this._candles[len - 2]
 
         assert(K1.high !== K2.high)
