@@ -9,6 +9,7 @@ export interface Candle {
     time: number,
     high: number,
     low: number,
+    barIndex: number   // 极值点对应的Bar在Bars数组的下标
 }
 
 // 分型
@@ -26,7 +27,8 @@ export interface Fractal {
     fxLow: number,
     highs: number[],
     lows: number[],
-    index: number   // 分型中心candle在Candles数组中的索引
+    candleIndex: number,// 分型中心candle在Candles数组中的索引
+    barIndex: number  // 分型中心极值点在Bars数组中的索引
 }
 export interface PenEventCallback {
     OnPenNew(): void;
@@ -51,7 +53,7 @@ export class PenDetector {
 
     public update(bar: Bar) {
         const len = this._store.bars.push(bar)
-        const included = this.remove_include(bar)
+        const included = this.remove_include(bar, len - 1)
         if (included === true) return
 
         if (this._candles.length < 3) return
@@ -64,12 +66,13 @@ export class PenDetector {
     }
 
     // ============================================ 以下为包含关系处理(所有特殊情况都已经考虑)======================================
-    private build_candle_from_bar(bar: Bar) {
+    private build_candle_from_bar(bar: Bar, index: number) {
         const candle: Candle = {
             id: this._candleId,
             time: bar.time,
             high: bar.high,
             low: bar.low,
+            barIndex: index
         }
 
         // 这里是为了今后方便判断分型之间的距离是否满足严格笔的要求, b.id - a.id >= 4，其中a,b为分型的中间K,a在前b在后
@@ -81,14 +84,15 @@ export class PenDetector {
     /**
      * 去除两根K线的包含关系
      * @param k 最新Bar
+     * @param index 最新Bar在Bars数组中的下标
      * @returns true 有包含关系或者初始Candle不足，false 无包含关系
      */
-    private remove_include(k: Bar) {
+    private remove_include(k: Bar, index: number) {
         const len = this._candles.length
         // 初始边界条件验证，前两个candle必须是非包含的
         switch (len) {
             case 0: // 队列中没有K线
-                this._candles.push(this.build_candle_from_bar(k))
+                this._candles.push(this.build_candle_from_bar(k, index))
                 return true
 
             case 1: // 仅有一根K线
@@ -101,7 +105,7 @@ export class PenDetector {
                 if (K2_INCLUDE_K1) this._candles.pop() // 忽略K1
                 if (K1_INCLUDE_K2) return true  // 忽略K2
 
-                this._candles.push(this.build_candle_from_bar(k))
+                this._candles.push(this.build_candle_from_bar(k, index))
                 return true
 
         }
@@ -123,23 +127,29 @@ export class PenDetector {
                 k2.high = Math.min(k3.high, k2.high)
                 k2.low = Math.min(k3.low, k2.low)
                 k2.time = k2.low <= k3.low ? k2.time : k3.time
+                k2.barIndex = k2.low <= k3.low ? k2.barIndex : index
             } else {
                 // 上包含，取高高
                 if (HIGH_EQ_LOW && k3.high === k2.high) return true
                 k2.high = Math.max(k3.high, k2.high)
                 k2.low = Math.max(k3.low, k2.low)
                 k2.time = k2.high >= k3.high ? k2.time : k3.time
+                k2.barIndex = k2.high >= k3.high ? k2.barIndex : index
             }
             return true
         }
 
         // 无包含关系
-        this._candles.push(this.build_candle_from_bar(k))
+        this._candles.push(this.build_candle_from_bar(k, index))
         return false
     }
 
 
     // ===================================================================== 分型处理 ====================================================
+    // 不合理的顶底分型：
+    // 1. 分型之间不能共用K
+    // 2. 顶底分型之间相互包含（前包含肯定不行，后包含有争议，这里前后包含都不允许)
+
     // 在笔检测的时候，需要通过分型的高低点区间[fxHigh, fxLow]去判断前后分型是否存在包含关系
     // 调用这个函数要确保K3已经完成
     private fractal_3k(K1: Candle, K2: Candle, K3: Candle): Fractal | null {
@@ -155,7 +165,8 @@ export class PenDetector {
                 fxLow: Math.min(K1.low, K2.low, K3.low),
                 highs: [K1.high, K2.high, K3.high],
                 lows: [K1.low, K2.low, K3.low],
-                index: K2.id  // 注意保存的是 Candle Index
+                candleIndex: K2.id,  // 注意保存的是 Candle Index
+                barIndex: K2.barIndex
             }
         }
 
@@ -170,7 +181,8 @@ export class PenDetector {
                 fxLow: Math.min(K1.low, K2.low, K3.low),
                 highs: [K1.high, K2.high, K3.high],
                 lows: [K1.low, K2.low, K3.low],
-                index: K2.id
+                candleIndex: K2.id,
+                barIndex: K2.barIndex
             }
         }
 
@@ -237,7 +249,12 @@ export class PenDetector {
     // ----------------|--------------------------------
     // ----------------4--------------------------------
     // 0-1 下降笔 1-2 不成笔，因为K线数量不够
-    // 1-3 成笔，但是3没有之前的2高
+    // 1-3 可以成笔，但是3没有之前的2高
+    // 这个图合理的划分笔：0-4一笔
+
+
+
+    // 修正，如果之前的笔已经画好，但之后出现新的高低点了，同时又无法满足构成新笔的条件，则需要对原笔进行调整。
     private check_pen(pens: Pen[], f1: Fractal, f2: Fractal) {
         // 前顶后低 and 前高后低 and 距离足够
         // 这里的前高后低判断用于最严格的标准，即不允许前包含也不允许后包含
@@ -245,6 +262,8 @@ export class PenDetector {
             const newPen = {
                 start: f1.time,
                 end: f2.time,
+                from: f1.barIndex,
+                to: f2.barIndex,
                 direction: Direction.Down,
                 status: PenStatus.New
             }
@@ -263,6 +282,8 @@ export class PenDetector {
             const newPen = {
                 start: f1.time,
                 end: f2.time,
+                from: f1.barIndex,
+                to: f1.barIndex,
                 direction: Direction.Up,
                 status: PenStatus.New
             }
@@ -308,7 +329,7 @@ export class PenDetector {
 
         switch (pen?.status) {
             case PenStatus.New:
-                this._fractals[0] = pen.start
+                this._fractals[0] = f1
                 this._fractals[1] = current
                 return pen
 

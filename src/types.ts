@@ -24,6 +24,8 @@ export enum PenStatus {
 export interface Pen {
     start: number,
     end: number,
+    from: number,
+    to: number,
     direction: Direction,
     status: PenStatus
 }
