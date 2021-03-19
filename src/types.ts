@@ -2,7 +2,7 @@
 
 // 未经过包含处理的K线
 export interface Bar {
-    time: number,   // Date.getTime()
+    time: number,   // Date.getTime() 毫秒数
     open: number,
     high: number,
     low: number,

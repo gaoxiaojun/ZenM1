@@ -64,7 +64,7 @@ else if 前点是底分型 and t.y<g.y then
 else if 前点是顶分型 and t.y<g.y then
     return g(t.x, t.y, t.type)
  */
-import { assert } from './assert'
+import { assert } from './util'
 import { Pen, Segment, Sequence, SequenceMergeDirection } from './types'
 
 export function update_segment(segments: Segment[], pen: Pen) {

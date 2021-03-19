@@ -1,6 +1,6 @@
 import { Bar, Pen, PenStatus, Direction } from './types'
 import { DataStore } from './datastore'
-import { assert } from './assert';
+import { assert } from './util';
 
 
 // 经过包含处理的K线
